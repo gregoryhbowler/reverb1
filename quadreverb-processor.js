@@ -10,17 +10,17 @@ class QuadraVerbProcessor extends AudioWorkletProcessor {
     this.params = {
       mix: 0.5,
       preDelayMs: 20,
-      decay: 3.0,
-      size: 0.7,
-      diffusion: 0.75,
+      decay: 2.0,        // Reduced from 3.0
+      size: 0.6,         // Reduced from 0.7
+      diffusion: 0.7,    // Reduced from 0.75
       lowCutHz: 100,
       highCutHz: 6000,
       color: 0.5,
-      modRate: 0.5,
-      modDepth: 0.3,
+      modRate: 0.4,      // Reduced from 0.5
+      modDepth: 0.2,     // Reduced from 0.3
       stereoWidth: 0.9,
-      vintage: 0.3,
-      mode: 0 // 0=plate, 1=hall, 2=room, 3=ambient
+      vintage: 0.2,      // Reduced from 0.3
+      mode: 1            // Hall mode (1) instead of Plate (0)
     };
     
     // ===== INITIALIZE BUFFERS =====
@@ -244,12 +244,17 @@ class QuadraVerbProcessor extends AudioWorkletProcessor {
     this.diffusionB.forEach(apf => apf.gain = diffGain * 0.6);
     this.diffusionBR.forEach(apf => apf.gain = diffGain * 0.58);
     
-    // Update FDN feedback
+    // Update FDN feedback - MUCH more conservative
     const decaySeconds = p.decay;
     const avgDelaySeconds = (this.fdnLines.reduce((sum, line) => sum + line.size, 0) / this.fdnLines.length) / sr;
     const targetRT60 = decaySeconds;
     let feedbackGain = Math.pow(10, -3 * avgDelaySeconds / targetRT60);
-    feedbackGain = Math.min(feedbackGain, 0.985);
+    // Very conservative limit - account for filter gain
+    feedbackGain = Math.min(feedbackGain, 0.95);
+    // Extra safety for short decays
+    if (decaySeconds < 1.0) {
+      feedbackGain = Math.min(feedbackGain, 0.85);
+    }
     this.fdnFeedback = feedbackGain;
     
     // Update damping filters
@@ -295,6 +300,9 @@ class QuadraVerbProcessor extends AudioWorkletProcessor {
   
   // ===== ALLPASS FILTER =====
   processAllpass(apf, input, lfoValue) {
+    // Check input
+    if (!isFinite(input)) return 0;
+    
     const modAmount = apf.modDepth * lfoValue;
     const readPos = apf.index - apf.size - modAmount;
     const readIdx = Math.floor(readPos);
@@ -304,9 +312,26 @@ class QuadraVerbProcessor extends AudioWorkletProcessor {
     const idx2 = ((readIdx + 1) % apf.size + apf.size) % apf.size;
     
     const delayed = apf.buffer[idx1] * (1 - frac) + apf.buffer[idx2] * frac;
+    
+    // Check delayed value
+    if (!isFinite(delayed)) {
+      apf.buffer[apf.index] = 0;
+      apf.index = (apf.index + 1) % apf.size;
+      return 0;
+    }
+    
     const output = -apf.gain * input + delayed + apf.gain * (input - apf.gain * delayed);
     
-    apf.buffer[apf.index] = input + apf.gain * delayed;
+    // Check output
+    if (!isFinite(output)) {
+      apf.buffer[apf.index] = 0;
+      apf.index = (apf.index + 1) % apf.size;
+      return 0;
+    }
+    
+    // Write to buffer with limiting
+    const writeValue = Math.max(-2, Math.min(2, input + apf.gain * delayed));
+    apf.buffer[apf.index] = writeValue;
     apf.index = (apf.index + 1) % apf.size;
     
     return output;
@@ -458,6 +483,13 @@ class QuadraVerbProcessor extends AudioWorkletProcessor {
       this.fdnLines.forEach((line, idx) => {
         let feedback = matrixOut[idx] * this.fdnFeedback;
         
+        // Check for NaN/Inf immediately
+        if (!isFinite(feedback)) {
+          feedback = 0;
+          line.dampState = 0;
+          line.hpState = 0;
+        }
+        
         if (idx < 4) {
           feedback += fdnInput * 0.5;
         }
@@ -466,16 +498,31 @@ class QuadraVerbProcessor extends AudioWorkletProcessor {
         line.dampState = this.processOnePoleLP(line.dampCoeff, line.dampState, feedback);
         feedback = line.dampState;
         
+        // Check again after filter
+        if (!isFinite(feedback)) {
+          feedback = 0;
+          line.dampState = 0;
+        }
+        
         // Highpass
         const hp = this.processOnePoleHP(line.hpCoeff, line.hpState, feedback);
         feedback = hp.output;
         line.hpState = hp.state;
         
-        // Soft saturation + vintage noise
-        feedback = this.softClip(feedback * 1.2) * 0.9;
+        // Check again
+        if (!isFinite(feedback)) {
+          feedback = 0;
+          line.hpState = 0;
+        }
+        
+        // Soft saturation (more aggressive) + vintage noise
+        feedback = this.softClip(feedback * 1.1) * 0.85;
         if (p.vintage > 0) {
           feedback += this.getVintageNoise() * p.vintage;
         }
+        
+        // Final clamp
+        feedback = Math.max(-2, Math.min(2, feedback));
         
         line.buffer[line.index] = feedback;
         line.index = (line.index + 1) % line.size;
@@ -487,6 +534,10 @@ class QuadraVerbProcessor extends AudioWorkletProcessor {
       
       wetL += earlyL * 0.3;
       wetR += earlyR * 0.3;
+      
+      // Check for NaN/Inf
+      if (!isFinite(wetL)) wetL = 0;
+      if (!isFinite(wetR)) wetR = 0;
       
       // Stereo width control
       const mid = (wetL + wetR) * 0.5;
@@ -501,10 +552,20 @@ class QuadraVerbProcessor extends AudioWorkletProcessor {
       this.outputLP.stateR = this.processOnePoleLP(this.outputLP.coeff, this.outputLP.stateR, wetR);
       wetR = this.outputLP.stateR;
       
-      // Safety limiting
+      // Check again
+      if (!isFinite(wetL)) {
+        wetL = 0;
+        this.outputLP.stateL = 0;
+      }
+      if (!isFinite(wetR)) {
+        wetR = 0;
+        this.outputLP.stateR = 0;
+      }
+      
+      // Aggressive safety limiting
       const wetPeak = Math.max(Math.abs(wetL), Math.abs(wetR));
-      if (wetPeak > this.safetyThreshold) {
-        const reduction = this.safetyThreshold / wetPeak;
+      if (wetPeak > 0.7) {
+        const reduction = 0.7 / wetPeak;
         wetL *= reduction;
         wetR *= reduction;
       }
@@ -513,9 +574,9 @@ class QuadraVerbProcessor extends AudioWorkletProcessor {
       outputL[i] = inL * (1 - p.mix) + wetL * p.mix;
       outputR[i] = inR * (1 - p.mix) + wetR * p.mix;
       
-      // Final safety clip
-      outputL[i] = Math.max(-1, Math.min(1, outputL[i]));
-      outputR[i] = Math.max(-1, Math.min(1, outputR[i]));
+      // Final safety clip (hard limit)
+      outputL[i] = Math.max(-0.95, Math.min(0.95, outputL[i]));
+      outputR[i] = Math.max(-0.95, Math.min(0.95, outputR[i]));
     }
     
     return true;
