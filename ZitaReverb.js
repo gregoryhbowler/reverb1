@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zita Reverb Example</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #1a1a1a;
+      color: #e0e0e0;
+    }
+    
+    h1 {
+      color: #4a9eff;
+      border-bottom: 2px solid #4a9eff;
+      padding-bottom: 10px;
+    }
+    
+    .control-group {
+      margin: 20px 0;
+      padding: 15px;
+      background: #2a2a2a;
+      border-radius: 8px;
+    }
+    
+    .control {
+      margin: 15px 0;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #b0b0b0;
+      font-size: 14px;
+    }
+    
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      background: #404040;
+      outline: none;
+      border-radius: 3px;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: #4a9eff;
+      cursor: pointer;
+      border-radius: 50%;
+    }
+    
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      background: #4a9eff;
+      cursor: pointer;
+      border-radius: 50%;
+      border: none;
+    }
+    
+    .value-display {
+      display: inline-block;
+      float: right;
+      color: #4a9eff;
+      font-weight: bold;
+    }
+    
+    button {
+      background: #4a9eff;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 5px;
+      transition: background 0.2s;
+    }
+    
+    button:hover {
+      background: #3a8eef;
+    }
+    
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+    
+    .button-group {
+      margin: 20px 0;
+    }
+    
+    .preset-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    .preset-buttons button {
+      flex: 1;
+      min-width: 100px;
+    }
+    
+    .info {
+      background: #2a2a2a;
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 4px solid #4a9eff;
+      margin: 20px 0;
+    }
+    
+    .warning {
+      color: #ff9f43;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎵 Zita Reverb</h1>
+  
+  <div class="info">
+    <p>High-quality FDN (Feedback Delay Network) reverb based on the Zita reverb algorithm.</p>
+    <p class="warning">⚠️ Click "Initialize Audio" to start. Use headphones for best results.</p>
+  </div>
+  
+  <div class="button-group">
+    <button id="initBtn">Initialize Audio</button>
+    <button id="testBtn" disabled>Play Test Tone</button>
+    <button id="stopBtn" disabled>Stop</button>
+  </div>
+  
+  <div class="control-group">
+    <h3>Reverb Parameters</h3>
+    
+    <div class="control">
+      <label>
+        Pre-Delay <span class="value-display" id="preDelValue">20 ms</span>
+      </label>
+      <input type="range" id="preDel" min="0" max="200" value="20" step="1">
+    </div>
+    
+    <div class="control">
+      <label>
+        Low Frequency Crossover <span class="value-display" id="lfFcValue">200 Hz</span>
+      </label>
+      <input type="range" id="lfFc" min="30" max="1200" value="200" step="1">
+    </div>
+    
+    <div class="control">
+      <label>
+        Low RT60 <span class="value-display" id="lowRt60Value">1.0 s</span>
+      </label>
+      <input type="range" id="lowRt60" min="0.1" max="3.0" value="1.0" step="0.1">
+    </div>
+    
+    <div class="control">
+      <label>
+        Mid RT60 <span class="value-display" id="midRt60Value">1.0 s</span>
+      </label>
+      <input type="range" id="midRt60" min="0.1" max="3.0" value="1.0" step="0.1">
+    </div>
+    
+    <div class="control">
+      <label>
+        High Frequency Damping <span class="value-display" id="hfDampValue">6000 Hz</span>
+      </label>
+      <input type="range" id="hfDamp" min="1200" max="23520" value="6000" step="100">
+    </div>
+    
+    <div class="control">
+      <label>
+        Dry/Wet Mix <span class="value-display" id="mixValue">50%</span>
+      </label>
+      <input type="range" id="mix" min="0" max="100" value="50" step="1">
+    </div>
+  </div>
+  
+  <div class="control-group">
+    <h3>Presets</h3>
+    <div class="preset-buttons">
+      <button class="preset" data-preset="small">Small Room</button>
+      <button class="preset" data-preset="medium">Medium Hall</button>
+      <button class="preset" data-preset="large">Large Hall</button>
+      <button class="preset" data-preset="hall">Concert Hall</button>
+      <button class="preset" data-preset="bright">Bright</button>
+      <button class="preset" data-preset="dark">Dark</button>
+    </div>
+  </div>
+  
+  <script src="zita-reverb.js"></script>
+  <script>
+    let audioContext;
+    let reverb;
+    let oscillator;
+    let dryGain;
+    let wetGain;
+    let masterGain;
+    let isPlaying = false;
+    
+    // Initialize audio
+    document.getElementById('initBtn').addEventListener('click', async () => {
+      try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        reverb = new ZitaReverb(audioContext);
+        
+        // Load the worklet processor
+        await reverb.init('zita-reverb-processor.js');
+        
+        // Create dry/wet mixer
+        dryGain = audioContext.createGain();
+        wetGain = audioContext.createGain();
+        masterGain = audioContext.createGain();
+        
+        // Set initial mix (50/50)
+        updateMix(50);
+        
+        // Connect reverb to wet path
+        reverb.connect(wetGain);
+        wetGain.connect(masterGain);
+        
+        // Connect master to output
+        masterGain.connect(audioContext.destination);
+        masterGain.gain.value = 0.5;
+        
+        // Enable controls
+        document.getElementById('testBtn').disabled = false;
+        document.getElementById('initBtn').disabled = true;
+        document.querySelectorAll('.preset').forEach(btn => btn.disabled = false);
+        
+        console.log('Zita Reverb initialized successfully!');
+      } catch (error) {
+        console.error('Failed to initialize:', error);
+        alert('Failed to initialize audio: ' + error.message);
+      }
+    });
+    
+    // Play test tone
+    document.getElementById('testBtn').addEventListener('click', () => {
+      if (isPlaying) return;
+      
+      oscillator = audioContext.createOscillator();
+      const impulseGain = audioContext.createGain();
+      
+      oscillator.frequency.value = 440;
+      oscillator.type = 'sine';
+      
+      // Create impulse envelope
+      impulseGain.gain.value = 0;
+      impulseGain.gain.setValueAtTime(0, audioContext.currentTime);
+      impulseGain.gain.linearRampToValueAtTime(1, audioContext.currentTime + 0.01);
+      impulseGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      
+      // Connect to both dry and wet paths
+      oscillator.connect(impulseGain);
+      impulseGain.connect(dryGain);
+      impulseGain.connect(reverb.getNode());
+      dryGain.connect(masterGain);
+      
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.5);
+      
+      isPlaying = true;
+      document.getElementById('stopBtn').disabled = false;
+      
+      oscillator.onended = () => {
+        isPlaying = false;
+        document.getElementById('stopBtn').disabled = true;
+      };
+    });
+    
+    // Stop
+    document.getElementById('stopBtn').addEventListener('click', () => {
+      if (oscillator) {
+        oscillator.stop();
+        oscillator = null;
+      }
+      isPlaying = false;
+      document.getElementById('stopBtn').disabled = true;
+    });
+    
+    // Update mix
+    function updateMix(mixPercent) {
+      const wet = mixPercent / 100;
+      const dry = 1 - wet;
+      
+      if (dryGain) dryGain.gain.value = dry;
+      if (wetGain) wetGain.gain.value = wet;
+    }
+    
+    // Parameter controls
+    document.getElementById('preDel').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('preDelValue').textContent = `${value} ms`;
+      if (reverb) reverb.setPreDelay(value);
+    });
+    
+    document.getElementById('lfFc').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('lfFcValue').textContent = `${value} Hz`;
+      if (reverb) reverb.setLowFreqCrossover(value);
+    });
+    
+    document.getElementById('lowRt60').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('lowRt60Value').textContent = `${value.toFixed(1)} s`;
+      if (reverb) reverb.setLowRT60(value);
+    });
+    
+    document.getElementById('midRt60').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('midRt60Value').textContent = `${value.toFixed(1)} s`;
+      if (reverb) reverb.setMidRT60(value);
+    });
+    
+    document.getElementById('hfDamp').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('hfDampValue').textContent = `${value} Hz`;
+      if (reverb) reverb.setHighFreqDamping(value);
+    });
+    
+    document.getElementById('mix').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('mixValue').textContent = `${value}%`;
+      updateMix(value);
+    });
+    
+    // Preset buttons
+    document.querySelectorAll('.preset').forEach(button => {
+      button.disabled = true;
+      button.addEventListener('click', () => {
+        const presetName = button.dataset.preset;
+        if (reverb) {
+          reverb.loadPreset(presetName);
+          
+          // Update UI to reflect preset values
+          const preset = ZitaReverb.presets[presetName];
+          if (preset) {
+            document.getElementById('preDel').value = preset.preDel;
+            document.getElementById('preDelValue').textContent = `${preset.preDel} ms`;
+            
+            document.getElementById('lfFc').value = preset.lfFc;
+            document.getElementById('lfFcValue').textContent = `${preset.lfFc} Hz`;
+            
+            document.getElementById('lowRt60').value = preset.lowRt60;
+            document.getElementById('lowRt60Value').textContent = `${preset.lowRt60.toFixed(1)} s`;
+            
+            document.getElementById('midRt60').value = preset.midRt60;
+            document.getElementById('midRt60Value').textContent = `${preset.midRt60.toFixed(1)} s`;
+            
+            document.getElementById('hfDamp').value = preset.hfDamp;
+            document.getElementById('hfDampValue').textContent = `${preset.hfDamp} Hz`;
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>
