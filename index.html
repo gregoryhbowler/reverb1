@@ -38,6 +38,12 @@
       font-size: 14px;
     }
     
+    .param-description {
+      font-size: 12px;
+      color: #808080;
+      margin-top: 2px;
+    }
+    
     input[type="range"] {
       width: 100%;
       height: 6px;
@@ -142,44 +148,42 @@
     
     <div class="control">
       <label>
+        Dry/Wet Mix <span class="value-display" id="mixValue">50%</span>
+      </label>
+      <div class="param-description">Balance between original and reverb signal</div>
+      <input type="range" id="mix" min="0" max="100" value="50" step="1">
+    </div>
+    
+    <div class="control">
+      <label>
+        Decay Time <span class="value-display" id="decayValue">1.5 s</span>
+      </label>
+      <div class="param-description">How long the reverb tail lasts</div>
+      <input type="range" id="decay" min="0.1" max="8.0" value="1.5" step="0.1">
+    </div>
+    
+    <div class="control">
+      <label>
         Pre-Delay <span class="value-display" id="preDelValue">20 ms</span>
       </label>
+      <div class="param-description">Initial delay before reverb starts (room size perception)</div>
       <input type="range" id="preDel" min="0" max="200" value="20" step="1">
     </div>
     
     <div class="control">
       <label>
-        Low Frequency Crossover <span class="value-display" id="lfFcValue">200 Hz</span>
+        High Frequency Damping <span class="value-display" id="dampingValue">6000 Hz</span>
       </label>
-      <input type="range" id="lfFc" min="30" max="1200" value="200" step="1">
+      <div class="param-description">How quickly high frequencies decay (lower = darker/warmer)</div>
+      <input type="range" id="damping" min="1500" max="18000" value="6000" step="100">
     </div>
     
     <div class="control">
       <label>
-        Low RT60 <span class="value-display" id="lowRt60Value">1.0 s</span>
+        Low Frequency Boost <span class="value-display" id="lowBoostValue">1.0x</span>
       </label>
-      <input type="range" id="lowRt60" min="0.1" max="3.0" value="1.0" step="0.1">
-    </div>
-    
-    <div class="control">
-      <label>
-        Mid RT60 <span class="value-display" id="midRt60Value">1.0 s</span>
-      </label>
-      <input type="range" id="midRt60" min="0.1" max="3.0" value="1.0" step="0.1">
-    </div>
-    
-    <div class="control">
-      <label>
-        High Frequency Damping <span class="value-display" id="hfDampValue">6000 Hz</span>
-      </label>
-      <input type="range" id="hfDamp" min="1200" max="23520" value="6000" step="100">
-    </div>
-    
-    <div class="control">
-      <label>
-        Dry/Wet Mix <span class="value-display" id="mixValue">50%</span>
-      </label>
-      <input type="range" id="mix" min="0" max="100" value="50" step="1">
+      <div class="param-description">Extend low frequency decay relative to mids</div>
+      <input type="range" id="lowBoost" min="0.5" max="2.0" value="1.0" step="0.1">
     </div>
   </div>
   
@@ -189,7 +193,7 @@
       <button class="preset" data-preset="small">Small Room</button>
       <button class="preset" data-preset="medium">Medium Hall</button>
       <button class="preset" data-preset="large">Large Hall</button>
-      <button class="preset" data-preset="hall">Concert Hall</button>
+      <button class="preset" data-preset="plate">Plate</button>
       <button class="preset" data-preset="bright">Bright</button>
       <button class="preset" data-preset="dark">Dark</button>
     </div>
@@ -200,6 +204,7 @@
     let audioContext;
     let reverb;
     let oscillator;
+    let inputGain;
     let dryGain;
     let wetGain;
     let masterGain;
@@ -214,21 +219,29 @@
         // Load the worklet processor
         await reverb.init('zita-reverb-processor.js');
         
-        // Create dry/wet mixer
+        // Create persistent audio graph
+        // Input -> splits to dry and wet paths -> master -> output
+        inputGain = audioContext.createGain();
         dryGain = audioContext.createGain();
         wetGain = audioContext.createGain();
         masterGain = audioContext.createGain();
         
-        // Set initial mix (50/50)
+        // Set up persistent connections
+        inputGain.connect(dryGain);
+        inputGain.connect(reverb.getNode());
+        reverb.connect(wetGain);
+        
+        dryGain.connect(masterGain);
+        wetGain.connect(masterGain);
+        masterGain.connect(audioContext.destination);
+        
+        // Set initial levels
+        inputGain.gain.value = 1.0;
+        masterGain.gain.value = 0.5;
         updateMix(50);
         
-        // Connect reverb to wet path
-        reverb.connect(wetGain);
-        wetGain.connect(masterGain);
-        
-        // Connect master to output
-        masterGain.connect(audioContext.destination);
-        masterGain.gain.value = 0.5;
+        // Set initial reverb parameters
+        updateReverb();
         
         // Enable controls
         document.getElementById('testBtn').disabled = false;
@@ -253,33 +266,38 @@
       oscillator.type = 'sine';
       
       // Create impulse envelope
+      const now = audioContext.currentTime;
       impulseGain.gain.value = 0;
-      impulseGain.gain.setValueAtTime(0, audioContext.currentTime);
-      impulseGain.gain.linearRampToValueAtTime(1, audioContext.currentTime + 0.01);
-      impulseGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      impulseGain.gain.setValueAtTime(0, now);
+      impulseGain.gain.linearRampToValueAtTime(1, now + 0.01);
+      impulseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
       
-      // Connect to both dry and wet paths
+      // Connect to persistent input
       oscillator.connect(impulseGain);
-      impulseGain.connect(dryGain);
-      impulseGain.connect(reverb.getNode());
-      dryGain.connect(masterGain);
+      impulseGain.connect(inputGain);
       
-      oscillator.start();
-      oscillator.stop(audioContext.currentTime + 0.5);
+      oscillator.start(now);
+      oscillator.stop(now + 0.5);
       
       isPlaying = true;
       document.getElementById('stopBtn').disabled = false;
       
-      oscillator.onended = () => {
+      // Note: reverb tail continues even after oscillator stops
+      // because the audio graph stays connected
+      setTimeout(() => {
         isPlaying = false;
         document.getElementById('stopBtn').disabled = true;
-      };
+      }, 500);
     });
     
     // Stop
     document.getElementById('stopBtn').addEventListener('click', () => {
       if (oscillator) {
-        oscillator.stop();
+        try {
+          oscillator.stop();
+        } catch (e) {
+          // Oscillator may have already stopped
+        }
         oscillator = null;
       }
       isPlaying = false;
@@ -295,69 +313,129 @@
       if (wetGain) wetGain.gain.value = wet;
     }
     
+    // Update reverb parameters from UI
+    function updateReverb() {
+      if (!reverb) return;
+      
+      const decay = parseFloat(document.getElementById('decay').value);
+      const preDel = parseFloat(document.getElementById('preDel').value);
+      const damping = parseFloat(document.getElementById('damping').value);
+      const lowBoost = parseFloat(document.getElementById('lowBoost').value);
+      
+      // Map UI parameters to Zita parameters
+      reverb.setParams({
+        preDel: preDel,
+        lfFc: 200,  // Fixed low-frequency crossover
+        midRt60: decay,
+        lowRt60: decay * lowBoost,  // Scale low freq decay
+        hfDamp: damping
+      });
+    }
+    
     // Parameter controls
-    document.getElementById('preDel').addEventListener('input', (e) => {
-      const value = parseFloat(e.target.value);
-      document.getElementById('preDelValue').textContent = `${value} ms`;
-      if (reverb) reverb.setPreDelay(value);
-    });
-    
-    document.getElementById('lfFc').addEventListener('input', (e) => {
-      const value = parseFloat(e.target.value);
-      document.getElementById('lfFcValue').textContent = `${value} Hz`;
-      if (reverb) reverb.setLowFreqCrossover(value);
-    });
-    
-    document.getElementById('lowRt60').addEventListener('input', (e) => {
-      const value = parseFloat(e.target.value);
-      document.getElementById('lowRt60Value').textContent = `${value.toFixed(1)} s`;
-      if (reverb) reverb.setLowRT60(value);
-    });
-    
-    document.getElementById('midRt60').addEventListener('input', (e) => {
-      const value = parseFloat(e.target.value);
-      document.getElementById('midRt60Value').textContent = `${value.toFixed(1)} s`;
-      if (reverb) reverb.setMidRT60(value);
-    });
-    
-    document.getElementById('hfDamp').addEventListener('input', (e) => {
-      const value = parseFloat(e.target.value);
-      document.getElementById('hfDampValue').textContent = `${value} Hz`;
-      if (reverb) reverb.setHighFreqDamping(value);
-    });
-    
     document.getElementById('mix').addEventListener('input', (e) => {
       const value = parseFloat(e.target.value);
       document.getElementById('mixValue').textContent = `${value}%`;
       updateMix(value);
     });
     
+    document.getElementById('decay').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('decayValue').textContent = `${value.toFixed(1)} s`;
+      updateReverb();
+    });
+    
+    document.getElementById('preDel').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('preDelValue').textContent = `${value} ms`;
+      updateReverb();
+    });
+    
+    document.getElementById('damping').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('dampingValue').textContent = `${value} Hz`;
+      updateReverb();
+    });
+    
+    document.getElementById('lowBoost').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('lowBoostValue').textContent = `${value.toFixed(1)}x`;
+      updateReverb();
+    });
+    
+    // Preset definitions with new parameter mapping
+    const presets = {
+      small: {
+        decay: 0.8,
+        preDel: 10,
+        damping: 8000,
+        lowBoost: 1.0,
+        mix: 35
+      },
+      medium: {
+        decay: 1.5,
+        preDel: 20,
+        damping: 6000,
+        lowBoost: 1.2,
+        mix: 50
+      },
+      large: {
+        decay: 2.5,
+        preDel: 40,
+        damping: 5000,
+        lowBoost: 1.5,
+        mix: 60
+      },
+      plate: {
+        decay: 2.0,
+        preDel: 5,
+        damping: 9000,
+        lowBoost: 0.8,
+        mix: 45
+      },
+      bright: {
+        decay: 1.2,
+        preDel: 15,
+        damping: 12000,
+        lowBoost: 0.7,
+        mix: 40
+      },
+      dark: {
+        decay: 1.8,
+        preDel: 25,
+        damping: 3000,
+        lowBoost: 1.6,
+        mix: 55
+      }
+    };
+    
     // Preset buttons
     document.querySelectorAll('.preset').forEach(button => {
       button.disabled = true;
       button.addEventListener('click', () => {
         const presetName = button.dataset.preset;
-        if (reverb) {
-          reverb.loadPreset(presetName);
+        const preset = presets[presetName];
+        
+        if (preset) {
+          // Update UI controls
+          document.getElementById('decay').value = preset.decay;
+          document.getElementById('decayValue').textContent = `${preset.decay.toFixed(1)} s`;
           
-          // Update UI to reflect preset values
-          const preset = ZitaReverb.presets[presetName];
-          if (preset) {
-            document.getElementById('preDel').value = preset.preDel;
-            document.getElementById('preDelValue').textContent = `${preset.preDel} ms`;
-            
-            document.getElementById('lfFc').value = preset.lfFc;
-            document.getElementById('lfFcValue').textContent = `${preset.lfFc} Hz`;
-            
-            document.getElementById('lowRt60').value = preset.lowRt60;
-            document.getElementById('lowRt60Value').textContent = `${preset.lowRt60.toFixed(1)} s`;
-            
-            document.getElementById('midRt60').value = preset.midRt60;
-            document.getElementById('midRt60Value').textContent = `${preset.midRt60.toFixed(1)} s`;
-            
-            document.getElementById('hfDamp').value = preset.hfDamp;
-            document.getElementById('hfDampValue').textContent = `${preset.hfDamp} Hz`;
-          }
+          document.getElementById('preDel').value = preset.preDel;
+          document.getElementById('preDelValue').textContent = `${preset.preDel} ms`;
+          
+          document.getElementById('damping').value = preset.damping;
+          document.getElementById('dampingValue').textContent = `${preset.damping} Hz`;
+          
+          document.getElementById('lowBoost').value = preset.lowBoost;
+          document.getElementById('lowBoostValue').textContent = `${preset.lowBoost.toFixed(1)}x`;
+          
+          document.getElementById('mix').value = preset.mix;
+          document.getElementById('mixValue').textContent = `${preset.mix}%`;
+          
+          // Apply settings
+          updateMix(preset.mix);
+          updateReverb();
         }
       });
     });
