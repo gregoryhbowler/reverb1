@@ -3,747 +3,364 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QuadraVerb - Vintage Algorithmic Reverb</title>
+  <title>Zita Reverb Example</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-      color: #e0e0e0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
       padding: 20px;
-      min-height: 100vh;
-    }
-    
-    .container {
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-    
-    header {
-      text-align: center;
-      margin-bottom: 40px;
+      background: #1a1a1a;
+      color: #e0e0e0;
     }
     
     h1 {
-      font-size: 3em;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 10px;
-      text-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
-    }
-    
-    .subtitle {
-      color: #999;
-      font-size: 1.2em;
-    }
-    
-    .main-controls {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-    
-    .panel {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      padding: 25px;
-      backdrop-filter: blur(10px);
-    }
-    
-    .panel h2 {
-      color: #667eea;
-      margin-bottom: 20px;
-      font-size: 1.3em;
-      border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+      color: #4a9eff;
+      border-bottom: 2px solid #4a9eff;
       padding-bottom: 10px;
     }
     
     .control-group {
-      margin-bottom: 20px;
+      margin: 20px 0;
+      padding: 15px;
+      background: #2a2a2a;
+      border-radius: 8px;
+    }
+    
+    .control {
+      margin: 15px 0;
     }
     
     label {
       display: block;
-      margin-bottom: 8px;
-      color: #ccc;
-      font-size: 0.95em;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .value-display {
-      color: #667eea;
-      font-weight: bold;
-      font-family: monospace;
+      margin-bottom: 5px;
+      color: #b0b0b0;
+      font-size: 14px;
     }
     
     input[type="range"] {
       width: 100%;
       height: 6px;
-      border-radius: 3px;
-      background: rgba(255, 255, 255, 0.1);
+      background: #404040;
       outline: none;
-      -webkit-appearance: none;
+      border-radius: 3px;
     }
     
     input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
       appearance: none;
       width: 18px;
       height: 18px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #4a9eff;
       cursor: pointer;
-      box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+      border-radius: 50%;
     }
     
     input[type="range"]::-moz-range-thumb {
       width: 18px;
       height: 18px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #4a9eff;
       cursor: pointer;
+      border-radius: 50%;
       border: none;
-      box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
     }
     
-    select {
-      width: 100%;
-      padding: 10px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 6px;
-      color: #e0e0e0;
-      font-size: 1em;
-      cursor: pointer;
+    .value-display {
+      display: inline-block;
+      float: right;
+      color: #4a9eff;
+      font-weight: bold;
     }
     
     button {
-      padding: 12px 24px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border: none;
-      border-radius: 8px;
+      background: #4a9eff;
       color: white;
-      font-size: 1em;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 6px;
       cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-      margin-right: 10px;
-      margin-bottom: 10px;
+      margin: 5px;
+      transition: background 0.2s;
     }
     
     button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+      background: #3a8eef;
     }
     
-    button:active {
-      transform: translateY(0);
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
     }
     
-    button.secondary {
-      background: rgba(255, 255, 255, 0.1);
+    .button-group {
+      margin: 20px 0;
     }
     
-    .test-buttons {
+    .preset-buttons {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      margin-top: 15px;
+      margin-top: 10px;
     }
     
-    .visualizer {
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 8px;
-      padding: 20px;
-      margin-top: 20px;
+    .preset-buttons button {
+      flex: 1;
+      min-width: 100px;
     }
     
-    canvas {
-      width: 100%;
-      height: 200px;
-      border-radius: 6px;
-    }
-    
-    .preset-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 10px;
-      margin-top: 15px;
-    }
-    
-    .preset-btn {
-      padding: 10px;
-      font-size: 0.9em;
-      margin: 0;
-      width: 100%;
-    }
-    
-    .info-box {
-      background: rgba(102, 126, 234, 0.1);
-      border-left: 3px solid #667eea;
+    .info {
+      background: #2a2a2a;
       padding: 15px;
-      border-radius: 6px;
-      margin-top: 20px;
-    }
-    
-    .info-box h3 {
-      color: #667eea;
-      margin-bottom: 10px;
-    }
-    
-    .status {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 0.85em;
-      margin-left: 10px;
-    }
-    
-    .status.active {
-      background: rgba(76, 175, 80, 0.3);
-      color: #4CAF50;
-    }
-    
-    .status.inactive {
-      background: rgba(244, 67, 54, 0.3);
-      color: #f44336;
-    }
-    
-    #fileInput {
-      display: none;
-    }
-    
-    .file-label {
-      display: inline-block;
-      padding: 12px 24px;
-      background: rgba(255, 255, 255, 0.1);
       border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
+      border-left: 4px solid #4a9eff;
+      margin: 20px 0;
     }
     
-    .file-label:hover {
-      background: rgba(255, 255, 255, 0.15);
+    .warning {
+      color: #ff9f43;
+      font-size: 14px;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>QuadraVerb</h1>
-      <p class="subtitle">Vintage Algorithmic Reverb - Inspired by Alesis Midiverb/Quadraverb & Lexicon PCM-70</p>
-    </header>
+  <h1>🎵 Zita Reverb</h1>
+  
+  <div class="info">
+    <p>High-quality FDN (Feedback Delay Network) reverb based on the Zita reverb algorithm.</p>
+    <p class="warning">⚠️ Click "Initialize Audio" to start. Use headphones for best results.</p>
+  </div>
+  
+  <div class="button-group">
+    <button id="initBtn">Initialize Audio</button>
+    <button id="testBtn" disabled>Play Test Tone</button>
+    <button id="stopBtn" disabled>Stop</button>
+  </div>
+  
+  <div class="control-group">
+    <h3>Reverb Parameters</h3>
     
-    <div class="main-controls">
-      <!-- Audio Source Panel -->
-      <div class="panel">
-        <h2>Audio Source</h2>
-        <div class="control-group">
-          <button id="startBtn">Start Audio Context</button>
-          <span id="statusIndicator" class="status inactive">Inactive</span>
-        </div>
-        
-        <div class="test-buttons">
-          <button id="impulseBtn" class="secondary">Impulse</button>
-          <button id="snareBtn" class="secondary">Snare</button>
-          <button id="kickBtn" class="secondary">Kick</button>
-          <button id="clapBtn" class="secondary">Clap</button>
-          <button id="sineBtn" class="secondary">Sine Tone</button>
-          <button id="chordBtn" class="secondary">Chord</button>
-          <button id="noiseBtn" class="secondary">Noise Burst</button>
-        </div>
-        
-        <div class="control-group" style="margin-top: 20px;">
-          <label for="fileInput" class="file-label">
-            📁 Load Audio File
-          </label>
-          <input type="file" id="fileInput" accept="audio/*">
-          <div id="fileName" style="margin-top: 10px; color: #667eea; font-size: 0.9em;"></div>
-        </div>
-        
-        <div class="control-group" style="margin-top: 20px;">
-          <label>
-            Master Volume
-            <span class="value-display" id="volumeValue">-12 dB</span>
-          </label>
-          <input type="range" id="volumeSlider" min="-60" max="0" step="1" value="-12">
-        </div>
-      </div>
-      
-      <!-- Basic Parameters Panel -->
-      <div class="panel">
-        <h2>Basic Parameters</h2>
-        
-        <div class="control-group">
-          <label>
-            Mix (Dry/Wet)
-            <span class="value-display" id="mixValue">50%</span>
-          </label>
-          <input type="range" id="mix" min="0" max="100" step="1" value="50">
-        </div>
-        
-        <div class="control-group">
-          <label>
-            Pre-Delay
-            <span class="value-display" id="preDelayValue">20 ms</span>
-          </label>
-          <input type="range" id="preDelay" min="0" max="200" step="1" value="20">
-        </div>
-        
-        <div class="control-group">
-          <label>
-            Decay Time
-            <span class="value-display" id="decayValue">3.0 s</span>
-          </label>
-          <input type="range" id="decay" min="1" max="200" step="1" value="30">
-        </div>
-        
-        <div class="control-group">
-          <label>
-            Size
-            <span class="value-display" id="sizeValue">70%</span>
-          </label>
-          <input type="range" id="size" min="0" max="100" step="1" value="70">
-        </div>
-        
-        <div class="control-group">
-          <label>
-            Diffusion
-            <span class="value-display" id="diffusionValue">75%</span>
-          </label>
-          <input type="range" id="diffusion" min="0" max="100" step="1" value="75">
-        </div>
-      </div>
-      
-      <!-- Tone & Color Panel -->
-      <div class="panel">
-        <h2>Tone & Color</h2>
-        
-        <div class="control-group">
-          <label>
-            Color (Dark ↔ Bright)
-            <span class="value-display" id="colorValue">50%</span>
-          </label>
-          <input type="range" id="color" min="0" max="100" step="1" value="50">
-        </div>
-        
-        <div class="control-group">
-          <label>
-            Low Cut
-            <span class="value-display" id="lowCutValue">100 Hz</span>
-          </label>
-          <input type="range" id="lowCut" min="20" max="1000" step="10" value="100">
-        </div>
-        
-        <div class="control-group">
-          <label>
-            High Cut (Damping)
-            <span class="value-display" id="highCutValue">6000 Hz</span>
-          </label>
-          <input type="range" id="highCut" min="500" max="20000" step="100" value="6000">
-        </div>
-        
-        <div class="control-group">
-          <label>
-            Vintage Character
-            <span class="value-display" id="vintageValue">30%</span>
-          </label>
-          <input type="range" id="vintage" min="0" max="100" step="1" value="30">
-        </div>
-      </div>
-      
-      <!-- Modulation & Stereo Panel -->
-      <div class="panel">
-        <h2>Modulation & Stereo</h2>
-        
-        <div class="control-group">
-          <label>
-            Mod Rate
-            <span class="value-display" id="modRateValue">50%</span>
-          </label>
-          <input type="range" id="modRate" min="0" max="100" step="1" value="50">
-        </div>
-        
-        <div class="control-group">
-          <label>
-            Mod Depth
-            <span class="value-display" id="modDepthValue">30%</span>
-          </label>
-          <input type="range" id="modDepth" min="0" max="100" step="1" value="30">
-        </div>
-        
-        <div class="control-group">
-          <label>
-            Stereo Width
-            <span class="value-display" id="stereoWidthValue">90%</span>
-          </label>
-          <input type="range" id="stereoWidth" min="0" max="100" step="1" value="90">
-        </div>
-        
-        <div class="control-group">
-          <label for="mode">Mode</label>
-          <select id="mode">
-            <option value="0">Plate</option>
-            <option value="1" selected>Hall</option>
-            <option value="2">Room</option>
-            <option value="3">Ambient</option>
-          </select>
-        </div>
-      </div>
+    <div class="control">
+      <label>
+        Pre-Delay <span class="value-display" id="preDelValue">20 ms</span>
+      </label>
+      <input type="range" id="preDel" min="0" max="200" value="20" step="1">
     </div>
     
-    <!-- Presets Panel -->
-    <div class="panel">
-      <h2>Presets</h2>
-      <div class="preset-grid">
-        <button class="preset-btn" data-preset="small-room">Small Room</button>
-        <button class="preset-btn" data-preset="medium-hall">Medium Hall</button>
-        <button class="preset-btn" data-preset="large-hall">Large Hall</button>
-        <button class="preset-btn" data-preset="bright-plate">Bright Plate</button>
-        <button class="preset-btn" data-preset="dark-plate">Dark Plate</button>
-        <button class="preset-btn" data-preset="ambient-wash">Ambient Wash</button>
-        <button class="preset-btn" data-preset="tight-drums">Tight Drums</button>
-        <button class="preset-btn" data-preset="vocal-shimmer">Vocal Shimmer</button>
-      </div>
+    <div class="control">
+      <label>
+        Low Frequency Crossover <span class="value-display" id="lfFcValue">200 Hz</span>
+      </label>
+      <input type="range" id="lfFc" min="30" max="1200" value="200" step="1">
     </div>
     
-    <!-- Visualizer -->
-    <div class="panel">
-      <h2>Output Visualizer</h2>
-      <canvas id="visualizer"></canvas>
+    <div class="control">
+      <label>
+        Low RT60 <span class="value-display" id="lowRt60Value">1.0 s</span>
+      </label>
+      <input type="range" id="lowRt60" min="0.1" max="3.0" value="1.0" step="0.1">
     </div>
     
-    <!-- Info Box -->
-    <div class="info-box">
-      <h3>About QuadraVerb</h3>
-      <p>
-        This is a high-quality algorithmic reverb inspired by classic 80s/90s rack units like the 
-        Alesis Midiverb/Quadraverb and Lexicon PCM-70. It features a hybrid delay network architecture 
-        with heavy diffusion, internal modulation, and vintage character.
-      </p>
-      <p style="margin-top: 10px;">
-        <strong>Architecture:</strong> Pre-delay → Early Reflections → Multi-stage Diffusion → 
-        8-line FDN → Damping & Coloring → Stereo Decorrelation
-      </p>
-      <p style="margin-top: 10px;">
-        <strong>Tips:</strong> Try the "Bright Plate" preset on drums, "Ambient Wash" on pads, 
-        or "Vocal Shimmer" on vocals. Increase modulation depth for more lushness.
-      </p>
+    <div class="control">
+      <label>
+        Mid RT60 <span class="value-display" id="midRt60Value">1.0 s</span>
+      </label>
+      <input type="range" id="midRt60" min="0.1" max="3.0" value="1.0" step="0.1">
+    </div>
+    
+    <div class="control">
+      <label>
+        High Frequency Damping <span class="value-display" id="hfDampValue">6000 Hz</span>
+      </label>
+      <input type="range" id="hfDamp" min="1200" max="23520" value="6000" step="100">
+    </div>
+    
+    <div class="control">
+      <label>
+        Dry/Wet Mix <span class="value-display" id="mixValue">50%</span>
+      </label>
+      <input type="range" id="mix" min="0" max="100" value="50" step="1">
     </div>
   </div>
   
-  <script type="module">
-    let audioContext = null;
-    let reverbNode = null;
-    let gainNode = null;
-    let analyser = null;
-    let audioSource = null;
-    let audioBuffer = null;
+  <div class="control-group">
+    <h3>Presets</h3>
+    <div class="preset-buttons">
+      <button class="preset" data-preset="small">Small Room</button>
+      <button class="preset" data-preset="medium">Medium Hall</button>
+      <button class="preset" data-preset="large">Large Hall</button>
+      <button class="preset" data-preset="hall">Concert Hall</button>
+      <button class="preset" data-preset="bright">Bright</button>
+      <button class="preset" data-preset="dark">Dark</button>
+    </div>
+  </div>
+  
+  <script src="zita-reverb.js"></script>
+  <script>
+    let audioContext;
+    let reverb;
+    let oscillator;
+    let dryGain;
+    let wetGain;
+    let masterGain;
+    let isPlaying = false;
     
-    // Visualizer
-    const canvas = document.getElementById('visualizer');
-    const canvasCtx = canvas.getContext('2d');
-    let animationId = null;
-    
-    function resizeCanvas() {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-    }
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-    
-    // Start Audio Context
-    document.getElementById('startBtn').addEventListener('click', async () => {
-      if (audioContext) return;
-      
-      audioContext = new AudioContext();
-      
-      // Load AudioWorklet
-      await audioContext.audioWorklet.addModule('quadreverb-processor.js');
-      
-      // Create nodes
-      reverbNode = new AudioWorkletNode(audioContext, 'quadreverb-processor', {
-        numberOfInputs: 1,
-        numberOfOutputs: 1,
-        outputChannelCount: [2]
-      });
-      
-      gainNode = audioContext.createGain();
-      gainNode.gain.value = 0.25; // -12dB
-      
-      analyser = audioContext.createAnalyser();
-      analyser.fftSize = 2048;
-      
-      // Connect
-      reverbNode.connect(gainNode);
-      gainNode.connect(analyser);
-      analyser.connect(audioContext.destination);
-      
-      // Initialize parameters
-      updateAllParameters();
-      
-      // Update UI
-      document.getElementById('statusIndicator').textContent = 'Active';
-      document.getElementById('statusIndicator').classList.remove('inactive');
-      document.getElementById('statusIndicator').classList.add('active');
-      document.getElementById('startBtn').disabled = true;
-      
-      // Start visualizer
-      draw();
+    // Initialize audio
+    document.getElementById('initBtn').addEventListener('click', async () => {
+      try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        reverb = new ZitaReverb(audioContext);
+        
+        // Load the worklet processor
+        await reverb.init('zita-reverb-processor.js');
+        
+        // Create dry/wet mixer
+        dryGain = audioContext.createGain();
+        wetGain = audioContext.createGain();
+        masterGain = audioContext.createGain();
+        
+        // Set initial mix (50/50)
+        updateMix(50);
+        
+        // Connect reverb to wet path
+        reverb.connect(wetGain);
+        wetGain.connect(masterGain);
+        
+        // Connect master to output
+        masterGain.connect(audioContext.destination);
+        masterGain.gain.value = 0.5;
+        
+        // Enable controls
+        document.getElementById('testBtn').disabled = false;
+        document.getElementById('initBtn').disabled = true;
+        document.querySelectorAll('.preset').forEach(btn => btn.disabled = false);
+        
+        console.log('Zita Reverb initialized successfully!');
+      } catch (error) {
+        console.error('Failed to initialize:', error);
+        alert('Failed to initialize audio: ' + error.message);
+      }
     });
     
-    // Update all parameters
-    function updateAllParameters() {
-      if (!reverbNode) return;
+    // Play test tone
+    document.getElementById('testBtn').addEventListener('click', () => {
+      if (isPlaying) return;
       
-      const params = {
-        mix: parseFloat(document.getElementById('mix').value) / 100,
-        preDelayMs: parseFloat(document.getElementById('preDelay').value),
-        decay: parseFloat(document.getElementById('decay').value) / 10,
-        size: parseFloat(document.getElementById('size').value) / 100,
-        diffusion: parseFloat(document.getElementById('diffusion').value) / 100,
-        lowCutHz: parseFloat(document.getElementById('lowCut').value),
-        highCutHz: parseFloat(document.getElementById('highCut').value),
-        color: parseFloat(document.getElementById('color').value) / 100,
-        modRate: parseFloat(document.getElementById('modRate').value) / 100,
-        modDepth: parseFloat(document.getElementById('modDepth').value) / 100,
-        stereoWidth: parseFloat(document.getElementById('stereoWidth').value) / 100,
-        vintage: parseFloat(document.getElementById('vintage').value) / 100,
-        mode: parseInt(document.getElementById('mode').value)
+      oscillator = audioContext.createOscillator();
+      const impulseGain = audioContext.createGain();
+      
+      oscillator.frequency.value = 440;
+      oscillator.type = 'sine';
+      
+      // Create impulse envelope
+      impulseGain.gain.value = 0;
+      impulseGain.gain.setValueAtTime(0, audioContext.currentTime);
+      impulseGain.gain.linearRampToValueAtTime(1, audioContext.currentTime + 0.01);
+      impulseGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      
+      // Connect to both dry and wet paths
+      oscillator.connect(impulseGain);
+      impulseGain.connect(dryGain);
+      impulseGain.connect(reverb.getNode());
+      dryGain.connect(masterGain);
+      
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.5);
+      
+      isPlaying = true;
+      document.getElementById('stopBtn').disabled = false;
+      
+      oscillator.onended = () => {
+        isPlaying = false;
+        document.getElementById('stopBtn').disabled = true;
       };
+    });
+    
+    // Stop
+    document.getElementById('stopBtn').addEventListener('click', () => {
+      if (oscillator) {
+        oscillator.stop();
+        oscillator = null;
+      }
+      isPlaying = false;
+      document.getElementById('stopBtn').disabled = true;
+    });
+    
+    // Update mix
+    function updateMix(mixPercent) {
+      const wet = mixPercent / 100;
+      const dry = 1 - wet;
       
-      reverbNode.port.postMessage({ type: 'updateParams', params });
+      if (dryGain) dryGain.gain.value = dry;
+      if (wetGain) wetGain.gain.value = wet;
     }
     
     // Parameter controls
-    const controls = [
-      { id: 'mix', valueId: 'mixValue', format: v => `${v}%` },
-      { id: 'preDelay', valueId: 'preDelayValue', format: v => `${v} ms` },
-      { id: 'decay', valueId: 'decayValue', format: v => `${(v/10).toFixed(1)} s` },
-      { id: 'size', valueId: 'sizeValue', format: v => `${v}%` },
-      { id: 'diffusion', valueId: 'diffusionValue', format: v => `${v}%` },
-      { id: 'color', valueId: 'colorValue', format: v => `${v}%` },
-      { id: 'lowCut', valueId: 'lowCutValue', format: v => `${v} Hz` },
-      { id: 'highCut', valueId: 'highCutValue', format: v => `${v} Hz` },
-      { id: 'vintage', valueId: 'vintageValue', format: v => `${v}%` },
-      { id: 'modRate', valueId: 'modRateValue', format: v => `${v}%` },
-      { id: 'modDepth', valueId: 'modDepthValue', format: v => `${v}%` },
-      { id: 'stereoWidth', valueId: 'stereoWidthValue', format: v => `${v}%` }
-    ];
-    
-    controls.forEach(control => {
-      const element = document.getElementById(control.id);
-      const valueDisplay = document.getElementById(control.valueId);
-      
-      element.addEventListener('input', () => {
-        valueDisplay.textContent = control.format(element.value);
-        updateAllParameters();
-      });
+    document.getElementById('preDel').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('preDelValue').textContent = `${value} ms`;
+      if (reverb) reverb.setPreDelay(value);
     });
     
-    document.getElementById('mode').addEventListener('change', updateAllParameters);
-    
-    // Volume control
-    document.getElementById('volumeSlider').addEventListener('input', (e) => {
-      const db = parseFloat(e.target.value);
-      document.getElementById('volumeValue').textContent = `${db} dB`;
-      if (gainNode) {
-        gainNode.gain.value = Math.pow(10, db / 20);
-      }
+    document.getElementById('lfFc').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('lfFcValue').textContent = `${value} Hz`;
+      if (reverb) reverb.setLowFreqCrossover(value);
     });
     
-    // Test sounds
-    function playTestSound(type) {
-      if (!audioContext || !reverbNode) {
-        alert('Please start audio context first!');
-        return;
-      }
-      
-      const duration = type === 'sine' ? 2.0 : 0.5;
-      const buffer = audioContext.createBuffer(2, audioContext.sampleRate * duration, audioContext.sampleRate);
-      const leftChannel = buffer.getChannelData(0);
-      const rightChannel = buffer.getChannelData(1);
-      
-      switch(type) {
-        case 'impulse':
-          leftChannel[0] = 1;
-          rightChannel[0] = 1;
-          break;
-          
-        case 'snare':
-          for (let i = 0; i < buffer.length; i++) {
-            const env = Math.exp(-i / audioContext.sampleRate / 0.15);
-            const noise = (Math.random() * 2 - 1) * env;
-            const tone = Math.sin(2 * Math.PI * 180 * i / audioContext.sampleRate) * env * 0.5;
-            leftChannel[i] = rightChannel[i] = (noise * 0.7 + tone * 0.3) * 0.5;
-          }
-          break;
-          
-        case 'kick':
-          for (let i = 0; i < buffer.length; i++) {
-            const t = i / audioContext.sampleRate;
-            const freq = 60 * Math.exp(-t * 30);
-            const env = Math.exp(-t / 0.3);
-            leftChannel[i] = rightChannel[i] = Math.sin(2 * Math.PI * freq * t) * env * 0.8;
-          }
-          break;
-          
-        case 'clap':
-          for (let i = 0; i < buffer.length * 0.1; i++) {
-            const env = Math.exp(-i / audioContext.sampleRate / 0.05);
-            leftChannel[i] = rightChannel[i] = (Math.random() * 2 - 1) * env * 0.6;
-          }
-          break;
-          
-        case 'sine':
-          for (let i = 0; i < buffer.length; i++) {
-            const t = i / audioContext.sampleRate;
-            const env = Math.min(t * 10, 1) * Math.max(0, 1 - (t - 1.5) * 2);
-            leftChannel[i] = rightChannel[i] = Math.sin(2 * Math.PI * 440 * t) * env * 0.3;
-          }
-          break;
-          
-        case 'chord':
-          const freqs = [261.63, 329.63, 392.00]; // C major
-          for (let i = 0; i < buffer.length; i++) {
-            const t = i / audioContext.sampleRate;
-            const env = Math.min(t * 5, 1) * Math.max(0, 1 - (t - 1.5) * 2);
-            let sum = 0;
-            freqs.forEach(freq => {
-              sum += Math.sin(2 * Math.PI * freq * t);
-            });
-            leftChannel[i] = rightChannel[i] = (sum / freqs.length) * env * 0.3;
-          }
-          break;
-          
-        case 'noise':
-          for (let i = 0; i < buffer.length * 0.2; i++) {
-            const env = Math.exp(-i / audioContext.sampleRate / 0.1);
-            leftChannel[i] = rightChannel[i] = (Math.random() * 2 - 1) * env * 0.4;
-          }
-          break;
-      }
-      
-      const source = audioContext.createBufferSource();
-      source.buffer = buffer;
-      source.connect(reverbNode);
-      source.start();
-    }
-    
-    document.getElementById('impulseBtn').addEventListener('click', () => playTestSound('impulse'));
-    document.getElementById('snareBtn').addEventListener('click', () => playTestSound('snare'));
-    document.getElementById('kickBtn').addEventListener('click', () => playTestSound('kick'));
-    document.getElementById('clapBtn').addEventListener('click', () => playTestSound('clap'));
-    document.getElementById('sineBtn').addEventListener('click', () => playTestSound('sine'));
-    document.getElementById('chordBtn').addEventListener('click', () => playTestSound('chord'));
-    document.getElementById('noiseBtn').addEventListener('click', () => playTestSound('noise'));
-    
-    // File upload
-    document.getElementById('fileInput').addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      
-      if (!audioContext) {
-        alert('Please start audio context first!');
-        return;
-      }
-      
-      document.getElementById('fileName').textContent = `Loading: ${file.name}`;
-      
-      const arrayBuffer = await file.arrayBuffer();
-      audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-      
-      document.getElementById('fileName').textContent = `✓ Loaded: ${file.name}`;
-      
-      // Play the file
-      if (audioSource) {
-        audioSource.stop();
-      }
-      
-      audioSource = audioContext.createBufferSource();
-      audioSource.buffer = audioBuffer;
-      audioSource.loop = true;
-      audioSource.connect(reverbNode);
-      audioSource.start();
+    document.getElementById('lowRt60').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('lowRt60Value').textContent = `${value.toFixed(1)} s`;
+      if (reverb) reverb.setLowRT60(value);
     });
     
-    // Presets
-    document.querySelectorAll('.preset-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const preset = btn.dataset.preset;
-        loadPreset(preset);
-      });
+    document.getElementById('midRt60').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('midRt60Value').textContent = `${value.toFixed(1)} s`;
+      if (reverb) reverb.setMidRT60(value);
     });
     
-    function loadPreset(presetName) {
-      const presets = {
-        'small-room': { mix: 30, preDelay: 5, decay: 12, size: 30, diffusion: 60, lowCut: 150, highCut: 8000, color: 60, modRate: 30, modDepth: 20, stereoWidth: 70, vintage: 20, mode: 2 },
-        'medium-hall': { mix: 40, preDelay: 15, decay: 25, size: 70, diffusion: 75, lowCut: 100, highCut: 7000, color: 50, modRate: 50, modDepth: 30, stereoWidth: 85, vintage: 30, mode: 1 },
-        'large-hall': { mix: 45, preDelay: 25, decay: 45, size: 90, diffusion: 80, lowCut: 80, highCut: 6500, color: 45, modRate: 40, modDepth: 35, stereoWidth: 90, vintage: 35, mode: 1 },
-        'bright-plate': { mix: 50, preDelay: 10, decay: 20, size: 65, diffusion: 80, lowCut: 120, highCut: 9000, color: 70, modRate: 60, modDepth: 40, stereoWidth: 95, vintage: 25, mode: 0 },
-        'dark-plate': { mix: 55, preDelay: 8, decay: 28, size: 70, diffusion: 75, lowCut: 100, highCut: 4500, color: 30, modRate: 50, modDepth: 35, stereoWidth: 90, vintage: 40, mode: 0 },
-        'ambient-wash': { mix: 60, preDelay: 40, decay: 80, size: 95, diffusion: 85, lowCut: 60, highCut: 5000, color: 35, modRate: 30, modDepth: 45, stereoWidth: 95, vintage: 35, mode: 3 },
-        'tight-drums': { mix: 25, preDelay: 3, decay: 8, size: 25, diffusion: 50, lowCut: 200, highCut: 8000, color: 65, modRate: 20, modDepth: 15, stereoWidth: 60, vintage: 15, mode: 2 },
-        'vocal-shimmer': { mix: 35, preDelay: 20, decay: 22, size: 60, diffusion: 80, lowCut: 150, highCut: 7500, color: 60, modRate: 70, modDepth: 50, stereoWidth: 85, vintage: 30, mode: 0 }
-      };
-      
-      const preset = presets[presetName];
-      if (preset) {
-        Object.keys(preset).forEach(key => {
-          const element = document.getElementById(key);
-          if (element) {
-            element.value = preset[key];
-            element.dispatchEvent(new Event('input'));
-          }
-        });
-      }
-    }
+    document.getElementById('hfDamp').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('hfDampValue').textContent = `${value} Hz`;
+      if (reverb) reverb.setHighFreqDamping(value);
+    });
     
-    // Visualizer
-    function draw() {
-      animationId = requestAnimationFrame(draw);
-      
-      if (!analyser) return;
-      
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-      analyser.getByteTimeDomainData(dataArray);
-      
-      canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-      canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      canvasCtx.lineWidth = 2;
-      canvasCtx.strokeStyle = '#667eea';
-      canvasCtx.beginPath();
-      
-      const sliceWidth = canvas.width / bufferLength;
-      let x = 0;
-      
-      for (let i = 0; i < bufferLength; i++) {
-        const v = dataArray[i] / 128.0;
-        const y = v * canvas.height / 2;
-        
-        if (i === 0) {
-          canvasCtx.moveTo(x, y);
-        } else {
-          canvasCtx.lineTo(x, y);
+    document.getElementById('mix').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('mixValue').textContent = `${value}%`;
+      updateMix(value);
+    });
+    
+    // Preset buttons
+    document.querySelectorAll('.preset').forEach(button => {
+      button.disabled = true;
+      button.addEventListener('click', () => {
+        const presetName = button.dataset.preset;
+        if (reverb) {
+          reverb.loadPreset(presetName);
+          
+          // Update UI to reflect preset values
+          const preset = ZitaReverb.presets[presetName];
+          if (preset) {
+            document.getElementById('preDel').value = preset.preDel;
+            document.getElementById('preDelValue').textContent = `${preset.preDel} ms`;
+            
+            document.getElementById('lfFc').value = preset.lfFc;
+            document.getElementById('lfFcValue').textContent = `${preset.lfFc} Hz`;
+            
+            document.getElementById('lowRt60').value = preset.lowRt60;
+            document.getElementById('lowRt60Value').textContent = `${preset.lowRt60.toFixed(1)} s`;
+            
+            document.getElementById('midRt60').value = preset.midRt60;
+            document.getElementById('midRt60Value').textContent = `${preset.midRt60.toFixed(1)} s`;
+            
+            document.getElementById('hfDamp').value = preset.hfDamp;
+            document.getElementById('hfDampValue').textContent = `${preset.hfDamp} Hz`;
+          }
         }
-        
-        x += sliceWidth;
-      }
-      
-      canvasCtx.lineTo(canvas.width, canvas.height / 2);
-      canvasCtx.stroke();
-    }
+      });
+    });
   </script>
 </body>
 </html>
